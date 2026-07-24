@@ -19,7 +19,7 @@ public class DiscordNotifier implements NotificationPlugin {
     }
 
     @Override
-    public void sendNotification(String message, String priority) {
+    public String sendNotification(String message, String priority) {
         try {
             String safeMessage = escapeJson(message);
             String jsonBody = "{\"content\": \"[" + priority + "] " + safeMessage + "\"}";
@@ -36,9 +36,9 @@ public class DiscordNotifier implements NotificationPlugin {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("[Discord] status=" + response.statusCode());
+            return "[Discord] 成功 (status=" + response.statusCode() + ")";
         } catch (Exception e) {
-            System.out.println("Discord通知に失敗しました: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            return "[Discord] 失敗: " + e.getClass().getSimpleName() + " - " + e.getMessage();
         }
     }
 

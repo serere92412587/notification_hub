@@ -23,7 +23,7 @@ public class TelegramNotifier implements NotificationPlugin {
     }
 
     @Override
-    public void sendNotification(String message, String priority) {
+    public String sendNotification(String message, String priority) {
         try {
             String text = "[" + priority + "] " + message;
             String encodedText = URLEncoder.encode(text, StandardCharsets.UTF_8);
@@ -41,10 +41,9 @@ public class TelegramNotifier implements NotificationPlugin {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("[Telegram] status=" + response.statusCode());
-            System.out.println("[Telegram] body=" + response.body());
+            return "[Telegram] 成功 (status=" + response.statusCode() + ")";
         } catch (Exception e) {
-            System.out.println("Telegram通知に失敗しました: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+            return "[Telegram] 失敗: " + e.getClass().getSimpleName() + " - " + e.getMessage();
         }
     }
 }

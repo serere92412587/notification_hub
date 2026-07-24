@@ -4,5 +4,5 @@ package plugin;
 public interface NotificationPlugin {
     String getPluginName();
 
-    void sendNotification(String message, String priority);
+    String sendNotification(String message, String priority);
 }

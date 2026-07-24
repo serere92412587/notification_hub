@@ -65,7 +65,8 @@ public class EventManager {
         log("[EventManager] === 通知配信開始 (" + plugins.size() + "件のプラグイン) ===");
         for (NotificationPlugin plugin : plugins) {
             log("[EventManager] → " + plugin.getPluginName() + " に送信中...");
-            plugin.sendNotification(message, priority);
+            String result = plugin.sendNotification(message, priority);
+            log("  └ " + result);
         }
         log("[EventManager] === 通知配信完了 ===");
     }
