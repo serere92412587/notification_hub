@@ -1,4 +1,5 @@
-import plugin.NotificationPlugin;
+import config.AppConfig;
+import core.EventManager;
 import plugin.DiscordNotifier;
 import plugin.TelegramNotifier;
 
@@ -6,19 +7,17 @@ public class App {
     public static void main(String[] args) {
         AppConfig config = new AppConfig("config.properties");
 
-        String discordUrl = config.get("discord.webhook.url");
-        String telegramToken = config.get("telegram.bot.token");
-        String telegramChatId = config.get("telegram.chat.id");
+        // --- EventManager（Observer の Subject）を作成 ---
+        EventManager manager = new EventManager();
 
-        NotificationPlugin discord = new DiscordNotifier(discordUrl);
-        NotificationPlugin telegram = new TelegramNotifier(telegramToken, telegramChatId);
+        // --- プラグイン（Observer）を登録 ---
+        manager.addPlugin(new DiscordNotifier(config.get("discord.webhook.url")));
+        manager.addPlugin(new TelegramNotifier(
+                config.get("telegram.bot.token"),
+                config.get("telegram.chat.id")
+        ));
 
-        // ここから EventManager に登録していく
-
-        // ここから動作確認：まずは直接呼んでみる
-        System.out.println("=== 動作確認開始 ===");
-        discord.sendNotification("テスト通知だよ", "INFO");
-        telegram.sendNotification("テスト通知だよ", "INFO");
-        System.out.println("=== 動作確認終了 ===");
+        // --- 一斉通知テスト ---
+        manager.notifyAllPlugins("EventManager経由のテスト通知です", "INFO");
     }
 }
