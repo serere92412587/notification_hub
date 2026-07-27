@@ -1,18 +1,119 @@
-## Getting Started
+# 通知Hub (Notification Hub) 📢
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+スマート通知・ログ出力一元管理システム。  
+イベント発生時に、登録された複数の通知プラグイン（Discord, Telegram, OSデスクトップ通知等）へ一斉通知を配信する拡張型アプリケーションです。
 
-## Folder Structure
+---
 
-The workspace contains two folders by default, where:
+## 🌟 主な特徴
 
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
+- 外部ライブラリ不使用（**Java標準API** のみで構築）
+- **GoFデザインパターン3種類**を導入し、極めて高い拡張性を実現
+- **GUI (Java Swing ダークモード)** および **CUI** の両対応
+- **ファイル自動監視トリガー (`FileWatcher`)** によるフォルダ自動検知通知
+- OS標準トレイポップアップ通知機能（`DesktopNotifier`）搭載
 
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
+---
 
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
+## 🏗️ 採用しているデザインパターン (GoF)
 
-## Dependency Management
+本プロジェクトは「**他人が拡張して初めて完成する**」思想に基づき、コアコードを変更せずに機能を拡張できるよう以下の3つのパターンを採用しています。
 
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+```
+                       ┌──────────────────────┐
+                       │   PluginFactory      │ (Factory Method)
+                       │  (config.properties) │
+                       └──────────┬───────────┘
+                                  │ 生成
+                                  ▼
+ ┌──────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+ │ FileWatcher  ├────>│    EventManager      │────>│ NotificationPlugin   │ (Strategy)
+ │ ManualTrigger│通知 │   (Subject/Observer) │一斉 │  - DiscordNotifier   │
+ └──────────────┘     └──────────────────────┘配信 │  - TelegramNotifier  │
+                           (Observer)              │  - DesktopNotifier   │
+                                                   └──────────────────────┘
+```
+
+### 1. Strategy パターン
+- **インターフェース**: `plugin.NotificationPlugin`
+- **役割**: 各通知手段（Discord, Telegram, デスクトップ通知等）の送信ロジックを抽象化。
+- **拡張性**: 新しい通知先を追加する際、コアコードを修正せず新クラスを1つ作成するだけで拡張可能（開放閉鎖の原則）。
+
+### 2. Observer パターン
+- **Subject役**: `core.EventManager`
+- **Observer役**: `plugin.NotificationPlugin`
+- **役割**: 複数の通知プラグインを保持し、イベント発生時に `notifyAllPlugins()` で一斉配信。
+- **動的拡張性**: GUI上のチェックボックス操作で、実行時にリアルタイムで通知先の追加（`addPlugin`）や解除（`removePlugin`）が可能。
+
+### 3. Factory Method パターン
+- **Factoryクラス**: `factory.PluginFactory`
+- **役割**: `src/config.properties` の `enabled.plugins=discord,telegram,desktop` 設定値から、必要なプラグインを動的にインスタンス化。
+- **デモ性**: **設定ファイルを書き換えるだけで、Javaコードを1行も触らずに通知先の変更デモ**が行えます。
+
+---
+
+## 📂 ディレクトリ構成
+
+```
+notification_hub/
+├── config.properties          # 実際のトークン設定 (Git管理外)
+├── config.properties.example  # 設定ファイルのサンプル
+├── src/
+│   ├── App.java               # エントリーポイント (GUI/CUI切替)
+│   ├── config/
+│   │   └── AppConfig.java     # 設定ファイル読み込みユーティリティ
+│   ├── core/
+│   │   ├── EventManager.java  # Observer パターン (Subject)
+│   │   ├── FileWatcher.java   # フォルダ自動監視トリガー
+│   │   ├── LogListener.java   # ログ転送インターフェース
+│   │   └── ManualTrigger.java # CUI用コンソールトリガー
+│   ├── factory/
+│   │   └── PluginFactory.java # Factory Method パターン
+│   ├── plugin/
+│   │   ├── NotificationPlugin.java # Strategy パターン (インターフェース)
+│   │   ├── DiscordNotifier.java   # Discord Webhook実装
+│   │   ├── TelegramNotifier.java  # Telegram Bot API実装
+│   │   └── DesktopNotifier.java   # OS標準トレイポップアップ実装
+│   └── ui/
+│       └── NotificationHubGUI.java # Java Swing GUI (ダークモード)
+└── watch/                     # FileWatcher 監視用フォルダ
+```
+
+---
+
+## 🚀 起動・実行手順
+
+### 1. 設定ファイルの作成
+`src/config.properties.example` をコピーして `src/config.properties` を作成し、トークン等を設定します。
+
+```properties
+discord.webhook.url=https://discord.com/api/webhooks/...
+telegram.bot.token=YOUR_BOT_TOKEN
+telegram.chat.id=YOUR_CHAT_ID
+enabled.plugins=discord,telegram,desktop
+```
+
+### 2. コンパイル
+```bash
+javac -d bin -sourcepath src src/App.java
+```
+
+### 3. 実行
+- **GUI モード（デフォルト）**:
+  ```bash
+  java -cp bin App
+  ```
+- **CUI モード**:
+  ```bash
+  java -cp bin App --cui
+  ```
+
+---
+
+## 💡 今後の拡張アイデア案 (保存メモ)
+
+本アプリの拡張性の高さを実証するための追加プラグイン案：
+
+1. **`FileLoggerNotifier` (ローカルログ記録プラグイン)**: 通知を `logs/notification.log` ファイルに自動追記。
+2. **`SoundNotifier` (サウンド通知プラグイン)**: `java.awt.Toolkit` を使用し、通知時にピコーンとサウンドを再生。
+3. **`SlackNotifier` / `LineNotifyNotifier`**: 追加のSNS連携プラグイン。
