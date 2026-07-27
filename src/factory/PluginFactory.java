@@ -43,6 +43,10 @@ public class PluginFactory {
                     ));
                     System.out.println("[PluginFactory] telegram プラグインを生成しました");
                     break;
+                case "desktop":
+                    plugins.add(new plugin.DesktopNotifier());
+                    System.out.println("[PluginFactory] desktop プラグインを生成しました");
+                    break;
                 default:
                     System.out.println("[PluginFactory] ⚠ 未知のプラグイン: " + trimmed + "（スキップ）");
                     break;
