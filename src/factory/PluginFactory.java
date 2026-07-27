@@ -47,6 +47,18 @@ public class PluginFactory {
                     plugins.add(new plugin.DesktopNotifier());
                     System.out.println("[PluginFactory] desktop プラグインを生成しました");
                     break;
+                case "filelogger":
+                case "file_logger":
+                case "filelog":
+                    String logPath = config.get("file.logger.path");
+                    plugins.add(new plugin.FileLoggerNotifier(logPath));
+                    System.out.println("[PluginFactory] filelogger プラグインを生成しました");
+                    break;
+                case "sound":
+                case "audio":
+                    plugins.add(new plugin.SoundNotifier());
+                    System.out.println("[PluginFactory] sound プラグインを生成しました");
+                    break;
                 default:
                     System.out.println("[PluginFactory] ⚠ 未知のプラグイン: " + trimmed + "（スキップ）");
                     break;

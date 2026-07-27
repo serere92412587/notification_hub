@@ -26,22 +26,24 @@
 
 ### 全体構造図
 ```
-                       ┌──────────────────────┐
-                       │   PluginFactory      │ (Factory Method)
-                       │  (config.properties) │
-                       └──────────┬───────────┘
-                                  │ 生成
-                                  ▼
- ┌──────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
- │ FileWatcher  ├────>│    EventManager      │────>│ NotificationPlugin   │ (Strategy)
- │ ManualTrigger│通知 │   (Subject/Observer) │一斉 │  - DiscordNotifier   │
- └──────────────┘     └──────────────────────┘配信 │  - TelegramNotifier  │
-                           (Observer)              │  - DesktopNotifier   │
-                                                   └──────────────────────┘
+                                ┌──────────────────────┐
+                                │   PluginFactory      │ (Factory Method)
+                                │  (config.properties) │
+                                └──────────┬───────────┘
+                                           │ 生成
+                                           ▼
+ ┌────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+ │  FileWatcher   ├────>│    EventManager      │────>│ NotificationPlugin   │ (Strategy)
+ │(GUI動的フォルダ)│通知 │   (Subject/Observer) │一斉 │  - DiscordNotifier   │
+ │ ManualTrigger  │     └──────────────────────┘配信 │  - TelegramNotifier  │
+ └────────────────┘           (Observer)              │  - DesktopNotifier   │
+                                                      │  - FileLoggerNotifier│
+                                                      │  - SoundNotifier     │
+                                                      └──────────────────────┘
 ```
 
 1. **Strategy パターン** (`plugin.NotificationPlugin`)
-   - 各通知方式（Discord, Telegram, OSデスクトップ通知）の処理を抽象化。
+   - 各通知方式（Discord, Telegram, OSデスクトップ通知, ローカルファイルログ追記, ビープ音再生）の処理を抽象化。
    - 新規通知先の追加時に既存コードを変更せず新クラスを追加するだけで対応可能（開放閉鎖の原則）。
 
 2. **Observer パターン** (`core.EventManager`)
@@ -64,8 +66,9 @@
 - [x] **Phase 6**: GUI構築 & スタイリング (Java Swing ダークモード, `NotificationHubGUI`)
 - [x] **Phase 7**: OS標準トレイポップアップ通知プラグイン (`DesktopNotifier`) 追加
 - [x] **Phase 8**: GUIでのリアルタイム Observer 着脱機能 (JCheckBox 連動) の追加
-- [x] **Phase 9**: 設定サンプル・ドキュメント整備 (`config.properties.example`, `README.md`, `demo_and_report_guide.md`)
 - [x] **Phase 10**: GUIでの監視対象フォルダ動的選択機能 (`JFileChooser` 連動) の追加
+- [x] **Phase 11**: `FileLoggerNotifier`（ログ自動追記）＆ `SoundNotifier`（サウンドビープ音）プラグインの追加
+- [x] **Phase 12**: `README.md` および本ドキュメントへの Mermaid/ASCII アーキテクチャ図の追加・拡充
 
 ---
 
