@@ -1,9 +1,11 @@
 import config.AppConfig;
 import core.EventManager;
 import core.ManualTrigger;
-import plugin.DiscordNotifier;
-import plugin.TelegramNotifier;
+import factory.PluginFactory;
+import plugin.NotificationPlugin;
 import ui.NotificationHubGUI;
+
+import java.util.List;
 
 public class App {
     public static void main(String[] args) {
@@ -12,12 +14,11 @@ public class App {
         // --- EventManager（Observer の Subject）を作成 ---
         EventManager manager = new EventManager();
 
-        // --- プラグイン（Observer）を登録 ---
-        manager.addPlugin(new DiscordNotifier(config.get("discord.webhook.url")));
-        manager.addPlugin(new TelegramNotifier(
-                config.get("telegram.bot.token"),
-                config.get("telegram.chat.id")
-        ));
+        // --- PluginFactory（Factory Method）でプラグインを動的生成・登録 ---
+        List<NotificationPlugin> plugins = PluginFactory.createPlugins(config);
+        for (NotificationPlugin plugin : plugins) {
+            manager.addPlugin(plugin);
+        }
 
         // --- 起動モード切替 ---
         if (args.length > 0 && args[0].equals("--cui")) {
