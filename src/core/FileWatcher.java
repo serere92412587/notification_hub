@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 // ファイル追加（ENTRY_CREATE）を常時監視して自動通知を行う。
 public class FileWatcher {
     private final EventManager manager;
-    private final Path watchDir;
+    private volatile Path watchDir;
     private WatchService watchService;
     private ExecutorService executor;
     private volatile boolean running = false;
@@ -21,8 +21,28 @@ public class FileWatcher {
     }
 
     /** 監視フォルダパスを取得 */
-    public Path getWatchDir() {
+    public synchronized Path getWatchDir() {
         return watchDir;
+    }
+
+    /** 監視フォルダパスを変更（監視中の場合は自動再起動） */
+    public synchronized void setWatchDir(Path newDir) {
+        if (newDir == null) return;
+        boolean wasRunning = running;
+        if (wasRunning) {
+            stop();
+        }
+        this.watchDir = newDir;
+        System.out.println("[FileWatcher] 監視フォルダを変更しました: " + watchDir.toAbsolutePath());
+        if (wasRunning) {
+            start();
+        }
+    }
+
+    public synchronized void setWatchDir(String dirPath) {
+        if (dirPath != null && !dirPath.trim().isEmpty()) {
+            setWatchDir(Paths.get(dirPath));
+        }
     }
 
     /** 監視が動いているか */

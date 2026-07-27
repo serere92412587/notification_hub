@@ -65,6 +65,7 @@
 - [x] **Phase 7**: OS標準トレイポップアップ通知プラグイン (`DesktopNotifier`) 追加
 - [x] **Phase 8**: GUIでのリアルタイム Observer 着脱機能 (JCheckBox 連動) の追加
 - [x] **Phase 9**: 設定サンプル・ドキュメント整備 (`config.properties.example`, `README.md`, `demo_and_report_guide.md`)
+- [x] **Phase 10**: GUIでの監視対象フォルダ動的選択機能 (`JFileChooser` 連動) の追加
 
 ---
 

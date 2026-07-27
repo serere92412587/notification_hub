@@ -84,11 +84,19 @@ public class NotificationHubGUI {
         watchStatusLabel.setForeground(COLOR_MUTED);
         watchStatusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
 
+        JButton selectDirButton = createStyledButton("📁 フォルダ変更", COLOR_ACCENT, Color.BLACK);
+        selectDirButton.addActionListener(this::onSelectDirClicked);
+
         watchToggleButton = createStyledButton("監視開始", COLOR_SUCCESS, Color.BLACK);
         watchToggleButton.addActionListener(this::onWatchToggleClicked);
 
+        JPanel watcherBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        watcherBtnPanel.setBackground(COLOR_PANEL);
+        watcherBtnPanel.add(selectDirButton);
+        watcherBtnPanel.add(watchToggleButton);
+
         watcherPanel.add(watchStatusLabel, BorderLayout.CENTER);
-        watcherPanel.add(watchToggleButton, BorderLayout.EAST);
+        watcherPanel.add(watcherBtnPanel, BorderLayout.EAST);
 
         // === 3. メッセージ入力エリア ===
         JPanel inputPanel = new JPanel(new BorderLayout(8, 8));
@@ -234,22 +242,52 @@ public class NotificationHubGUI {
         pluginPanel.repaint();
     }
 
+    /** フォルダ選択ボタン押下時 */
+    private void onSelectDirClicked(ActionEvent e) {
+        if (fileWatcher == null) return;
+
+        JFileChooser chooser = new JFileChooser(fileWatcher.getWatchDir().toFile());
+        chooser.setDialogTitle("監視対象フォルダを選択");
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+        int result = chooser.showOpenDialog(frame);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            java.io.File selectedDir = chooser.getSelectedFile();
+            if (selectedDir != null) {
+                fileWatcher.setWatchDir(selectedDir.toPath());
+                updateWatchStatusLabel();
+                appendLog("📁 監視対象フォルダを切り替えました: " + selectedDir.getAbsolutePath());
+            }
+        }
+    }
+
     /** ファイル監視トグルボタン押下時 */
     private void onWatchToggleClicked(ActionEvent e) {
         if (fileWatcher == null) return;
 
         if (fileWatcher.isRunning()) {
             fileWatcher.stop();
-            watchToggleButton.setText("監視開始");
-            watchToggleButton.setBackground(COLOR_SUCCESS);
-            watchStatusLabel.setText("  🔴 停止中 (対象: " + fileWatcher.getWatchDir().toAbsolutePath() + ")");
-            watchStatusLabel.setForeground(COLOR_MUTED);
         } else {
             fileWatcher.start();
+        }
+        updateWatchStatusLabel();
+    }
+
+    /** 監視ステータス表示の更新 */
+    private void updateWatchStatusLabel() {
+        if (fileWatcher == null) return;
+
+        String dirPath = fileWatcher.getWatchDir().toAbsolutePath().toString();
+        if (fileWatcher.isRunning()) {
             watchToggleButton.setText("監視停止");
             watchToggleButton.setBackground(COLOR_DANGER);
-            watchStatusLabel.setText("  🟢 監視中... (対象: " + fileWatcher.getWatchDir().toAbsolutePath() + ")");
+            watchStatusLabel.setText("  🟢 監視中... (対象: " + dirPath + ")");
             watchStatusLabel.setForeground(COLOR_SUCCESS);
+        } else {
+            watchToggleButton.setText("監視開始");
+            watchToggleButton.setBackground(COLOR_SUCCESS);
+            watchStatusLabel.setText("  🔴 停止中 (対象: " + dirPath + ")");
+            watchStatusLabel.setForeground(COLOR_MUTED);
         }
     }
 
