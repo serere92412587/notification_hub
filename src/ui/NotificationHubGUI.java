@@ -1,6 +1,7 @@
 package ui;
 
 import core.EventManager;
+import core.FileWatcher;
 import core.LogListener;
 
 import javax.swing.*;
@@ -17,6 +18,7 @@ import java.util.List;
 // EventManager を通じてプラグインへの通知送信・ログ表示を行う。
 public class NotificationHubGUI {
     private final EventManager manager;
+    private final FileWatcher fileWatcher;
 
     // UI コンポーネント
     private JFrame frame;
@@ -25,11 +27,14 @@ public class NotificationHubGUI {
     private JButton sendButton;
     private ButtonGroup priorityGroup;
     private JPanel pluginPanel;
+    private JButton watchToggleButton;
+    private JLabel watchStatusLabel;
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    public NotificationHubGUI(EventManager manager) {
+    public NotificationHubGUI(EventManager manager, FileWatcher fileWatcher) {
         this.manager = manager;
+        this.fileWatcher = fileWatcher;
     }
 
     /** GUI を構築して表示する */
@@ -44,7 +49,7 @@ public class NotificationHubGUI {
         // --- メインフレーム ---
         frame = new JFrame("通知Hub - スマート通知管理システム");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(640, 520);
+        frame.setSize(680, 600);
         frame.setLocationRelativeTo(null); // 画面中央に配置
         frame.setResizable(true);
 
@@ -59,9 +64,25 @@ public class NotificationHubGUI {
         pluginPanel.setBorder(pluginBorder);
         refreshPluginList();
 
+        // === ファイル監視設定パネル ===
+        JPanel watcherPanel = new JPanel(new BorderLayout(8, 0));
+        TitledBorder watcherBorder = BorderFactory.createTitledBorder("ファイル自動監視 (FileWatcher)");
+        watcherPanel.setBorder(watcherBorder);
+
+        String dirPath = fileWatcher != null ? fileWatcher.getWatchDir().toAbsolutePath().toString() : "./watch";
+        watchStatusLabel = new JLabel(" 監視対象: " + dirPath + " (停止中)");
+        watchStatusLabel.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
+
+        watchToggleButton = new JButton("監視開始");
+        watchToggleButton.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        watchToggleButton.addActionListener(this::onWatchToggleClicked);
+
+        watcherPanel.add(watchStatusLabel, BorderLayout.CENTER);
+        watcherPanel.add(watchToggleButton, BorderLayout.EAST);
+
         // === 中央: メッセージ入力エリア ===
         JPanel inputPanel = new JPanel(new BorderLayout(8, 8));
-        TitledBorder inputBorder = BorderFactory.createTitledBorder("通知送信");
+        TitledBorder inputBorder = BorderFactory.createTitledBorder("手動通知送信");
         inputPanel.setBorder(inputBorder);
 
         // メッセージ入力行
@@ -100,7 +121,12 @@ public class NotificationHubGUI {
         // 上部+中央をまとめる
         JPanel topPanel = new JPanel(new BorderLayout(0, 8));
         topPanel.add(pluginPanel, BorderLayout.NORTH);
-        topPanel.add(inputPanel, BorderLayout.CENTER);
+
+        JPanel middlePanel = new JPanel(new BorderLayout(0, 8));
+        middlePanel.add(watcherPanel, BorderLayout.NORTH);
+        middlePanel.add(inputPanel, BorderLayout.CENTER);
+
+        topPanel.add(middlePanel, BorderLayout.CENTER);
 
         // === 下部: ログ表示エリア ===
         logArea = new JTextArea();
@@ -119,24 +145,47 @@ public class NotificationHubGUI {
 
         frame.setContentPane(mainPanel);
 
+        // ウィンドウ閉じたときに FileWatcher を停止するシャットダウンフック
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                if (fileWatcher != null && fileWatcher.isRunning()) {
+                    fileWatcher.stop();
+                }
+            }
+        });
+
         // --- EventManager にログリスナーを設定 ---
         manager.setLogListener(message -> {
-            // SwingWorker のスレッドから呼ばれるので、EDT に戻す
             SwingUtilities.invokeLater(() -> {
                 String time = LocalTime.now().format(TIME_FMT);
                 logArea.append("[" + time + "] " + message + "\n");
-                // 自動スクロール
                 logArea.setCaretPosition(logArea.getDocument().getLength());
             });
         });
 
         // --- イベントリスナー設定 ---
         sendButton.addActionListener(this::onSendClicked);
-        messageField.addActionListener(this::onSendClicked); // Enter キーでも送信
+        messageField.addActionListener(this::onSendClicked);
 
         // --- 表示 ---
         frame.setVisible(true);
         appendLog("アプリケーション起動完了");
+    }
+
+    /** ファイル監視トグルボタン押下時 */
+    private void onWatchToggleClicked(ActionEvent e) {
+        if (fileWatcher == null) return;
+
+        if (fileWatcher.isRunning()) {
+            fileWatcher.stop();
+            watchToggleButton.setText("監視開始");
+            watchStatusLabel.setText(" 監視対象: " + fileWatcher.getWatchDir().toAbsolutePath() + " (停止中)");
+        } else {
+            fileWatcher.start();
+            watchToggleButton.setText("監視停止");
+            watchStatusLabel.setText(" 監視対象: " + fileWatcher.getWatchDir().toAbsolutePath() + " (監視中...)");
+        }
     }
 
     /** 送信ボタン押下時の処理 */
@@ -150,7 +199,6 @@ public class NotificationHubGUI {
         String priority = priorityGroup.getSelection().getActionCommand();
         appendLog("送信開始: [" + priority + "] " + message);
 
-        // UI をフリーズさせないために SwingWorker で別スレッド実行
         sendButton.setEnabled(false);
         messageField.setEnabled(false);
 
