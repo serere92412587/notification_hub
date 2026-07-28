@@ -4,3 +4,4 @@ bin/
 watch/
 logs/
 *.class
+~$*.docx
