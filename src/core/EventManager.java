@@ -33,14 +33,14 @@ public class EventManager {
         }
         if (!activePlugins.contains(plugin)) {
             activePlugins.add(plugin);
-            log("[EventManager] + " + plugin.getPluginName() + " を配信対象に登録しました");
+            log("[システム] プラグイン登録: + " + plugin.getPluginName());
         }
     }
 
     /** プラグインを配信対象から解除する */
     public void removePlugin(NotificationPlugin plugin) {
         if (activePlugins.remove(plugin)) {
-            log("[EventManager] - " + plugin.getPluginName() + " を配信対象から解除しました");
+            log("[システム] プラグイン解除: - " + plugin.getPluginName());
         }
     }
 
@@ -49,11 +49,11 @@ public class EventManager {
         if (enabled) {
             if (!activePlugins.contains(plugin)) {
                 activePlugins.add(plugin);
-                log("[EventManager] [Observer有効化] + " + plugin.getPluginName() + " を登録しました");
+                log("[Observer連動] プラグイン有効化 🟢 -> " + plugin.getPluginName());
             }
         } else {
             if (activePlugins.remove(plugin)) {
-                log("[EventManager] [Observer解除] - " + plugin.getPluginName() + " を削除しました");
+                log("[Observer連動] プラグイン無効化 🔴 -> " + plugin.getPluginName());
             }
         }
     }
@@ -92,16 +92,35 @@ public class EventManager {
     /**
      * 現在アクティブな全プラグインに通知を一斉配信する。
      */
-    public void notifyAllPlugins(String message, String priority) {
-        log("[EventManager] === 通知配信開始 (" + activePlugins.size() + "件のアクティブ・プラグイン) ===");
+    public NotificationSummary notifyAllPlugins(String message, String priority) {
+        int total = activePlugins.size();
+        log("[一括配信] メッセージ「" + message + "」の配信を開始します (対象: " + total + "件)");
+
         if (activePlugins.isEmpty()) {
-            log("[EventManager] ⚠ 有効なプラグインがありません。通知はスキップされました。");
+            log("[一括配信] ⚠ 有効なプラグインが選択されていません。送信をスキップします。");
+            return new NotificationSummary(0, 0, new ArrayList<>());
         }
-        for (NotificationPlugin plugin : activePlugins) {
-            log("[EventManager] → " + plugin.getPluginName() + " に送信中...");
+
+        int successCount = 0;
+        List<String> targetNames = new ArrayList<>();
+
+        for (int i = 0; i < activePlugins.size(); i++) {
+            NotificationPlugin plugin = activePlugins.get(i);
+            boolean isLast = (i == activePlugins.size() - 1);
+            String prefix = isLast ? "  └─ " : "  ├─ ";
+
+            targetNames.add(plugin.getPluginName());
+            log(prefix + "→ [" + plugin.getPluginName() + "] へ送信中...");
+
             String result = plugin.sendNotification(message, priority);
-            log("  └ " + result);
+            log("     └ " + result);
+
+            if (result != null && result.contains("成功")) {
+                successCount++;
+            }
         }
-        log("[EventManager] === 通知配信完了 ===");
+
+        log("[一括配信] 処理完了 (成功: " + successCount + "件 / 失敗: " + (total - successCount) + "件)");
+        return new NotificationSummary(total, successCount, targetNames);
     }
 }

@@ -34,39 +34,39 @@ public class PluginFactory {
             switch (trimmed) {
                 case "discord":
                     plugins.add(new DiscordNotifier(config.get("discord.webhook.url")));
-                    System.out.println("[PluginFactory] discord プラグインを生成しました");
+                    System.out.println("[システム] [Factory生成] Discord通知 プラグイン");
                     break;
                 case "telegram":
                     plugins.add(new TelegramNotifier(
                             config.get("telegram.bot.token"),
                             config.get("telegram.chat.id")
                     ));
-                    System.out.println("[PluginFactory] telegram プラグインを生成しました");
+                    System.out.println("[システム] [Factory生成] Telegram通知 プラグイン");
                     break;
                 case "desktop":
                     plugins.add(new plugin.DesktopNotifier());
-                    System.out.println("[PluginFactory] desktop プラグインを生成しました");
+                    System.out.println("[システム] [Factory生成] デスクトップOS通知 プラグイン");
                     break;
                 case "filelogger":
                 case "file_logger":
                 case "filelog":
                     String logPath = config.get("file.logger.path");
                     plugins.add(new plugin.FileLoggerNotifier(logPath));
-                    System.out.println("[PluginFactory] filelogger プラグインを生成しました");
+                    System.out.println("[システム] [Factory生成] ローカルファイルログ プラグイン");
                     break;
                 case "sound":
                 case "audio":
                     plugins.add(new plugin.SoundNotifier());
-                    System.out.println("[PluginFactory] sound プラグインを生成しました");
+                    System.out.println("[システム] [Factory生成] サウンド（ビープ音）通知 プラグイン");
                     break;
                 default:
-                    System.out.println("[PluginFactory] ⚠ 未知のプラグイン: " + trimmed + "（スキップ）");
+                    System.out.println("[システム] [Factory生成] ⚠ 未知のプラグイン: " + trimmed);
                     break;
             }
         }
 
         if (plugins.isEmpty()) {
-            System.out.println("[PluginFactory] ⚠ 有効なプラグインがありません。enabled.plugins を確認してください。");
+            System.out.println("[システム] [Factory生成] ⚠ 有効なプラグインがありません。");
         }
 
         return plugins;

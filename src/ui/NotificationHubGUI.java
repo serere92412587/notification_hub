@@ -305,11 +305,10 @@ public class NotificationHubGUI {
         sendButton.setEnabled(false);
         messageField.setEnabled(false);
 
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+        SwingWorker<core.NotificationSummary, Void> worker = new SwingWorker<>() {
             @Override
-            protected Void doInBackground() {
-                manager.notifyAllPlugins(message, priority);
-                return null;
+            protected core.NotificationSummary doInBackground() {
+                return manager.notifyAllPlugins(message, priority);
             }
 
             @Override
@@ -318,9 +317,38 @@ public class NotificationHubGUI {
                 messageField.setEnabled(true);
                 messageField.setText("");
                 messageField.requestFocusInWindow();
+
+                try {
+                    core.NotificationSummary summary = get();
+                    if (summary != null && summary.getTotalTargets() > 0) {
+                        showSummaryDialog(summary);
+                    }
+                } catch (Exception ignored) {}
             }
         };
         worker.execute();
+    }
+
+    /** 配信結果のサマリーダイアログを表示（拡張前後の視覚化） */
+    private void showSummaryDialog(core.NotificationSummary summary) {
+        StringBuilder sb = new StringBuilder();
+        if (summary.isMultipleTargets()) {
+            sb.append("🎉 【一括同斉配信が完了しました！】\n");
+            sb.append("----------------─────────────────────\n");
+            sb.append("合計 ").append(summary.getTotalTargets()).append(" 件の通知先へ一斉に配信されました。\n\n");
+            sb.append("■ 配信対象プラグイン:\n");
+            for (String name : summary.getTargetPluginNames()) {
+                sb.append("  ✔ ").append(name).append("\n");
+            }
+            sb.append("\n(※ コアコード無修正でマルチ配信へ拡張された状態です)");
+            JOptionPane.showMessageDialog(frame, sb.toString(), "配信結果サマリー (機能拡張適用中)", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            sb.append("📢 【送信完了】\n");
+            sb.append("----------------─────────────────────\n");
+            sb.append("配信対象: 1件 (").append(summary.getTargetPluginNames().get(0)).append(")\n\n");
+            sb.append("(※ 単一プラグインのみ動作する拡張前の状態です)");
+            JOptionPane.showMessageDialog(frame, sb.toString(), "送信結果サマリー (拡張前状態)", JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 
     private void appendLog(String message) {
