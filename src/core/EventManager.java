@@ -102,25 +102,26 @@ public class EventManager {
         }
 
         int successCount = 0;
-        List<String> targetNames = new ArrayList<>();
+        List<NotificationSummary.PluginResult> results = new ArrayList<>();
 
         for (int i = 0; i < activePlugins.size(); i++) {
             NotificationPlugin plugin = activePlugins.get(i);
             boolean isLast = (i == activePlugins.size() - 1);
             String prefix = isLast ? "  └─ " : "  ├─ ";
 
-            targetNames.add(plugin.getPluginName());
             log(prefix + "→ [" + plugin.getPluginName() + "] へ送信中...");
 
-            String result = plugin.sendNotification(message, priority);
-            log("     └ " + result);
+            String rawResult = plugin.sendNotification(message, priority);
+            log("     └ " + rawResult);
 
-            if (result != null && result.contains("成功")) {
+            boolean isSuccess = rawResult != null && rawResult.contains("成功");
+            if (isSuccess) {
                 successCount++;
             }
+            results.add(new NotificationSummary.PluginResult(plugin.getPluginName(), isSuccess, rawResult));
         }
 
         log("[一括配信] 処理完了 (成功: " + successCount + "件 / 失敗: " + (total - successCount) + "件)");
-        return new NotificationSummary(total, successCount, targetNames);
+        return new NotificationSummary(total, successCount, results);
     }
 }

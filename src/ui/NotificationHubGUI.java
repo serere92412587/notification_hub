@@ -329,24 +329,52 @@ public class NotificationHubGUI {
         worker.execute();
     }
 
-    /** 配信結果のサマリーダイアログを表示（拡張前後の視覚化） */
+    /** 配信結果のサマリーダイアログを表示（成功・失敗・エラー理由の明示） */
     private void showSummaryDialog(core.NotificationSummary summary) {
         StringBuilder sb = new StringBuilder();
+        int failCount = summary.getTotalTargets() - summary.getSuccessCount();
+
         if (summary.isMultipleTargets()) {
             sb.append("🎉 【一括同斉配信が完了しました！】\n");
-            sb.append("----------------─────────────────────\n");
-            sb.append("合計 ").append(summary.getTotalTargets()).append(" 件の通知先へ一斉に配信されました。\n\n");
-            sb.append("■ 配信対象プラグイン:\n");
-            for (String name : summary.getTargetPluginNames()) {
-                sb.append("  ✔ ").append(name).append("\n");
+            sb.append("----------------─────────────────────────\n");
+            sb.append("合計 ").append(summary.getTotalTargets()).append(" 件の通知先へ送信処理を行いました。\n");
+            sb.append("（成功: ").append(summary.getSuccessCount()).append(" 件 / 失敗: ").append(failCount).append(" 件）\n\n");
+            sb.append("■ 配信結果詳細:\n");
+
+            for (core.NotificationSummary.PluginResult res : summary.getResults()) {
+                if (res.isSuccess()) {
+                    sb.append("  ✔ ").append(res.getPluginName()).append(": 成功\n");
+                } else {
+                    String cleanMsg = res.getDetailMessage();
+                    if (cleanMsg.contains(": ")) {
+                        cleanMsg = cleanMsg.substring(cleanMsg.indexOf(": ") + 2);
+                    }
+                    sb.append("  ❌ ").append(res.getPluginName()).append(": 失敗 (").append(cleanMsg).append(")\n");
+                }
+            }
+
+            if (failCount > 0) {
+                sb.append("\n💡 ヒント: 失敗した通知は、学内プロキシや通信制限によるタイムアウト等の可能性があります。");
             }
             sb.append("\n(※ コアコード無修正でマルチ配信へ拡張された状態です)");
-            JOptionPane.showMessageDialog(frame, sb.toString(), "配信結果サマリー (機能拡張適用中)", JOptionPane.INFORMATION_MESSAGE);
+
+            int iconType = (failCount == 0) ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE;
+            JOptionPane.showMessageDialog(frame, sb.toString(), "配信結果サマリー (機能拡張適用中)", iconType);
+
         } else {
             sb.append("📢 【送信完了】\n");
-            sb.append("----------------─────────────────────\n");
-            sb.append("配信対象: 1件 (").append(summary.getTargetPluginNames().get(0)).append(")\n\n");
-            sb.append("(※ 単一プラグインのみ動作する拡張前の状態です)");
+            sb.append("----------------─────────────────────────\n");
+            core.NotificationSummary.PluginResult res = summary.getResults().get(0);
+            if (res.isSuccess()) {
+                sb.append("配信対象: ").append(res.getPluginName()).append(" (成功)\n");
+            } else {
+                String cleanMsg = res.getDetailMessage();
+                if (cleanMsg.contains(": ")) {
+                    cleanMsg = cleanMsg.substring(cleanMsg.indexOf(": ") + 2);
+                }
+                sb.append("配信対象: ").append(res.getPluginName()).append(" (失敗: ").append(cleanMsg).append(")\n");
+            }
+            sb.append("\n(※ 単一プラグインのみ動作する拡張前の状態です)");
             JOptionPane.showMessageDialog(frame, sb.toString(), "送信結果サマリー (拡張前状態)", JOptionPane.INFORMATION_MESSAGE);
         }
     }

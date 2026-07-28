@@ -36,9 +36,17 @@ public class DiscordNotifier implements NotificationPlugin {
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return "[Discord] 成功 (status=" + response.statusCode() + ")";
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                return "[Discord] 成功 (HTTP " + response.statusCode() + ")";
+            } else {
+                return "[Discord] 失敗 (HTTPエラー " + response.statusCode() + ")";
+            }
+        } catch (java.net.http.HttpConnectTimeoutException e) {
+            return "[Discord] 失敗: 接続がタイムアウトしました (ネットワーク制限・プロキシ等の影響)";
+        } catch (java.net.http.HttpTimeoutException e) {
+            return "[Discord] 失敗: レスポンス応答がタイムアウトしました";
         } catch (Exception e) {
-            return "[Discord] 失敗: " + e.getClass().getSimpleName() + " - " + e.getMessage();
+            return "[Discord] 失敗: 通信エラー (" + e.getMessage() + ")";
         }
     }
 
